@@ -105,7 +105,7 @@ const Features = () => {
   ];
 
   return (
-    <section className="py-24 bg-black text-center relative overflow-hidden">
+    <section className="py-24 bg-gradient-to-b from-[#0f172a] via-[#1e293b] to-gray-100 dark:to-gray-900 text-center relative overflow-hidden">
       <div className="absolute inset-0 bg-grid-indigo-500/[0.02] bg-[size:30px_30px]"></div>
       <div className="container mx-auto px-6 max-w-7xl relative z-10">
         <div className="max-w-3xl mx-auto mb-20">

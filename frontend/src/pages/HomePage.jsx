@@ -4,6 +4,7 @@ import Features from "../components/Features";
 import ContactForm from "../components/ContactForm";
 import ContentSelector from "../components/ContentSelector";
 import HeroSection from "../components/HeroSection";
+import FAQ from "../components/FAQ";
 
 const HomePage = () => {
   return (
@@ -15,6 +16,7 @@ const HomePage = () => {
         <ContentSelector />
       </div>
       <ContactForm />
+      <FAQ />
     </>
   );
 };

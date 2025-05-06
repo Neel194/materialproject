@@ -33,24 +33,24 @@ const ContentSelector = () => {
   };
 
   return (
-    <section className="py-16 bg-white dark:bg-black">
+    <section className="py-16 bg-gradient-to-b from-gray-100 to-white dark:from-gray-900 dark:to-gray-950">
       <div className="container mx-auto px-6">
-        <h2 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg text-center mb-8 tracking-tight animate-gradient">
+        <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white text-center mb-8 tracking-tight">
           Select What You Need
         </h2>
         <form
           onSubmit={handleSubmit}
-          className="max-w-lg mx-auto bg-white dark:bg-black p-8 rounded-lg shadow-lg"
+          className="max-w-lg mx-auto bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
         >
           {/* Year Selection */}
-          <div className="mb-4">
-            <label className="block font-bold mb-2 text-white tracking-wide">
+          <div className="mb-6">
+            <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-200 tracking-wide">
               Your Current Year:
             </label>
             <select
               value={year}
               onChange={(e) => setYear(e.target.value)}
-              className="w-full p-3 border border-gray-300 dark:border-neutral-800 rounded-lg bg-white dark:bg-black text-black dark:text-white"
+              className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
               <option value="" disabled>
                 Select Year
@@ -63,14 +63,14 @@ const ContentSelector = () => {
           </div>
 
           {/* Branch Selection */}
-          <div className="mb-4">
-            <label className="block font-bold mb-2 text-white tracking-wide">
+          <div className="mb-6">
+            <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-200 tracking-wide">
               Your Branch:
             </label>
             <select
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
-              className="w-full p-3 border border-gray-300 dark:border-neutral-800 rounded-lg bg-white dark:bg-black text-black dark:text-white"
+              className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
               <option value="" disabled>
                 Select Branch
@@ -81,14 +81,14 @@ const ContentSelector = () => {
           </div>
 
           {/* Content Selection */}
-          <div className="mb-4">
-            <label className="block font-bold mb-2 text-white tracking-wide">
+          <div className="mb-6">
+            <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-200 tracking-wide">
               What do you need?
             </label>
             <select
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full p-3 border border-gray-300 dark:border-neutral-800 rounded-lg bg-white dark:bg-black text-black dark:text-white"
+              className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
               <option value="" disabled>
                 Select Content
@@ -102,7 +102,7 @@ const ContentSelector = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full p-3 bg-gradient-to-r from-purple-700 via-indigo-700 to-pink-600 text-white rounded-lg font-bold text-lg tracking-wide shadow-md transition hover:scale-105 hover:shadow-lg mt-4"
+            className="w-full p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg tracking-wide shadow-sm transition-all duration-200 mt-4"
           >
             Get Content
           </button>

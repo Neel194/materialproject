@@ -116,17 +116,17 @@ const ContentUpload = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="h-[calc(100vh-64px)] flex items-center justify-center bg-gradient-to-b from-gray-900 to-gray-800 px-4"
+        className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-gradient-to-b from-gray-900 to-gray-800 px-2 sm:px-4 py-4"
       >
         <form
           onSubmit={handleSubmit}
-          className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-2xl p-6 w-full max-w-2xl border border-gray-700/50"
+          className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-2xl p-3 sm:p-6 w-full max-w-2xl border border-gray-700/50"
         >
-          <h2 className="text-2xl font-bold mb-4 text-white text-center">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 text-white text-center">
             Upload Study Material
           </h2>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Left Column */}
             <div className="space-y-3">
               {/* Content Type Selection */}

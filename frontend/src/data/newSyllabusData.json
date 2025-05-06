@@ -1,0 +1,32 @@
+[
+  {
+    "year": "1st",
+    "branch": "CSE",
+    "subject": "Mathematics",
+    "description": "Fundamental concepts of calculus, linear algebra, and discrete mathematics",
+    "units": [
+      "Calculus: Limits, Continuity, Differentiation",
+      "Linear Algebra: Matrices, Vector Spaces",
+      "Discrete Mathematics: Sets, Relations, Functions",
+      "Probability and Statistics",
+      "Numerical Methods"
+    ],
+    "previewLink": "#",
+    "downloadLink": "#"
+  },
+  {
+    "year": "2nd",
+    "branch": "CSE",
+    "subject": "Data Structures",
+    "description": "Study of fundamental data structures and their implementations",
+    "units": [
+      "Arrays and Linked Lists",
+      "Stacks and Queues",
+      "Trees and Graphs",
+      "Sorting and Searching",
+      "Hashing"
+    ],
+    "previewLink": "#",
+    "downloadLink": "#"
+  }
+]

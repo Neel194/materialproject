@@ -1,8 +1,8 @@
 import { Routes, Route } from "react-router-dom";
-import HomePage from "./Pages/HomePage";
-import SyllabusPage from "./Pages/SyllabusPage";
-import PYQPage from "./Pages/PYQPage";
-import MaterialPage from "./Pages/MaterialPage";
+import HomePage from "./pages/HomePage";
+import SyllabusPage from "./pages/SyllabusPage";
+import PYQPage from "./pages/PYQPage";
+import MaterialPage from "./pages/MaterialPage";
 import ContentUpload from "./pages/ContentUpload";
 import AboutPage from "./pages/AboutPage";
 import Header from "./components/Header";

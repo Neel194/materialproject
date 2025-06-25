@@ -1,17 +1,25 @@
 import { Bell, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import config from "../config/config";
 
 const NotificationDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      message: "New material uploaded",
-      time: "2 minutes ago",
-      read: false,
-    },
-    { id: 2, message: "Processing complete", time: "1 hour ago", read: false },
-  ]);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch notifications for 'Anonymous' when dropdown is opened
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      fetch(`${config.api.baseURL}/materials/notifications/Anonymous`)
+        .then((res) => res.json())
+        .then((data) => {
+          setNotifications(data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }
+  }, [isOpen]);
 
   const unreadNotifications = notifications.filter((n) => !n.read).length;
 
@@ -41,21 +49,29 @@ const NotificationDropdown = () => {
             </button>
           </div>
           <div className="max-h-[60vh] overflow-y-auto">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`p-3 sm:p-4 border-b border-white/10 hover:bg-white/5 transition-colors ${
-                  !notification.read ? "bg-indigo-500/10" : ""
-                }`}
-              >
-                <p className="text-white text-sm sm:text-base">
-                  {notification.message}
-                </p>
-                <p className="text-white/50 text-xs sm:text-sm mt-1">
-                  {notification.time}
-                </p>
+            {loading ? (
+              <div className="p-4 text-center text-white/60">Loading...</div>
+            ) : notifications.length === 0 ? (
+              <div className="p-4 text-center text-white/60">
+                No notifications
               </div>
-            ))}
+            ) : (
+              notifications.map((notification) => (
+                <div
+                  key={notification._id}
+                  className={`p-3 sm:p-4 border-b border-white/10 hover:bg-white/5 transition-colors ${
+                    !notification.read ? "bg-indigo-500/10" : ""
+                  }`}
+                >
+                  <p className="text-white text-sm sm:text-base">
+                    {notification.message}
+                  </p>
+                  <p className="text-white/50 text-xs sm:text-sm mt-1">
+                    {new Date(notification.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}

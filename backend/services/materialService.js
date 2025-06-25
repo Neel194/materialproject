@@ -1,6 +1,7 @@
 const Material = require("../models/Material");
 const ValidationService = require("./validationService");
 const CacheService = require("./cacheService");
+const Notification = require("../models/Notification");
 
 class MaterialService {
   // Helper function to build filter object
@@ -146,6 +147,15 @@ class MaterialService {
 
     try {
       const updatedMaterial = await material.save();
+
+      // Create notification if approved
+      if (status === "approved") {
+        await Notification.create({
+          user: material.uploadedBy || "Anonymous",
+          message: `Your material '${material.title}' has been approved!`,
+          materialId: material._id,
+        });
+      }
 
       // Clear relevant caches
       CacheService.delete(CacheService.generateKey("materials", {}));

@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  React as ReactIcon,
-  Nodejs,
-  Database,
-  Cloud,
-  Shield,
-  Zap,
-} from "lucide-react";
+import { Zap, Shield, Cloud } from "lucide-react";
 
 const TechStack = () => {
   const technologies = [

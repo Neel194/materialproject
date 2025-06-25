@@ -1,4 +1,6 @@
 const MaterialService = require("../services/materialService");
+const FileService = require("../services/fileService");
+const { validateMaterial } = require("../services/validationService");
 
 // Helper function to build filter object
 const buildFilter = (query) => {
@@ -11,52 +13,77 @@ const buildFilter = (query) => {
   return filter;
 };
 
-// Upload new material
-exports.uploadMaterial = async (req, res) => {
+/**
+ * Upload a new material
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const uploadMaterial = async (req, res, next) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
     const material = await MaterialService.createMaterial(req.body, req.file);
     res.status(201).json(material);
   } catch (error) {
-    console.error("Upload material error:", error);
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 
-// Get approved materials
-exports.getApprovedMaterials = async (req, res) => {
+/**
+ * Get all approved materials with pagination and search
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const getApprovedMaterials = async (req, res, next) => {
   try {
-    const result = await MaterialService.getMaterials(req.query, false);
-    res.json(result);
+    const materials = await MaterialService.getMaterials(req.query, false);
+    res.json(materials);
   } catch (error) {
-    console.error("Get approved materials error:", error);
-    res.status(500).json({ message: "Error fetching approved materials" });
+    next(error);
   }
 };
 
-// Get all materials (admin)
-exports.getAllMaterials = async (req, res) => {
+/**
+ * Get all materials (including pending and rejected) - Admin only
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const getAllMaterials = async (req, res, next) => {
   try {
-    const result = await MaterialService.getMaterials(req.query, true);
-    res.json(result);
+    const materials = await MaterialService.getMaterials(req.query, true);
+    res.json(materials);
   } catch (error) {
-    console.error("Get all materials error:", error);
-    res.status(500).json({ message: "Error fetching materials" });
+    next(error);
   }
 };
 
-// Get material statistics
-exports.getMaterialStats = async (req, res) => {
+/**
+ * Get material statistics - Admin only
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const getMaterialStats = async (req, res, next) => {
   try {
     const stats = await MaterialService.getMaterialStats();
     res.json(stats);
   } catch (error) {
-    console.error("Get material stats error:", error);
-    res.status(500).json({ message: "Error fetching material statistics" });
+    next(error);
   }
 };
 
-// Approve material
-exports.approveMaterial = async (req, res) => {
+/**
+ * Approve a material - Admin only
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const approveMaterial = async (req, res, next) => {
   try {
     const material = await MaterialService.updateMaterialStatus(
       req.params.id,
@@ -64,15 +91,17 @@ exports.approveMaterial = async (req, res) => {
     );
     res.json(material);
   } catch (error) {
-    console.error("Approve material error:", error);
-    res
-      .status(500)
-      .json({ message: error.message || "Error approving material" });
+    next(error);
   }
 };
 
-// Reject material
-exports.rejectMaterial = async (req, res) => {
+/**
+ * Reject a material - Admin only
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const rejectMaterial = async (req, res, next) => {
   try {
     const material = await MaterialService.updateMaterialStatus(
       req.params.id,
@@ -80,9 +109,15 @@ exports.rejectMaterial = async (req, res) => {
     );
     res.json(material);
   } catch (error) {
-    console.error("Reject material error:", error);
-    res
-      .status(500)
-      .json({ message: error.message || "Error rejecting material" });
+    next(error);
   }
+};
+
+module.exports = {
+  uploadMaterial,
+  getApprovedMaterials,
+  getAllMaterials,
+  getMaterialStats,
+  approveMaterial,
+  rejectMaterial,
 };

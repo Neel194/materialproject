@@ -13,6 +13,7 @@ import {
 } from "chart.js";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
 
+// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -43,6 +44,7 @@ const Charts = () => {
 
   const dailyUsersOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "top",
@@ -118,6 +120,7 @@ const Charts = () => {
 
   const downloadsOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "top",
@@ -181,6 +184,7 @@ const Charts = () => {
 
   const userDistributionOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "bottom",
@@ -215,19 +219,19 @@ const Charts = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Daily Active Users Chart */}
-          <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10">
+          <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 h-80">
             <Line data={dailyUsersData} options={dailyUsersOptions} />
           </div>
 
           {/* Material Downloads Chart */}
-          <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10">
+          <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 h-80">
             <Bar data={downloadsData} options={downloadsOptions} />
           </div>
         </div>
 
         {/* User Distribution Chart */}
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10">
+          <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 h-80">
             <Doughnut
               data={userDistributionData}
               options={userDistributionOptions}

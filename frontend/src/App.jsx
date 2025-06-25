@@ -11,6 +11,7 @@ import Footer from "./components/Footer";
 import AdminPanel from "./pages/AdminPanel";
 import AdminLogin from "./pages/AdminLogin";
 import TestPage from "./pages/TestPage";
+import ChatBot from "./components/ChatBot";
 
 // Simple test component for debugging
 const SimpleAdminTest = () => {
@@ -58,6 +59,7 @@ const App = () => {
         </Routes>
       </main>
       <Footer />
+      <ChatBot />
     </div>
   );
 };

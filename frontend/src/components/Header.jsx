@@ -1,6 +1,6 @@
 "use client";
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, Upload, Home, Bell, X } from "lucide-react";
+import { BookOpen, Upload, Home, Bell, X, BarChart3 } from "lucide-react";
 import { useState, useEffect } from "react";
 import NotificationDropdown from "./NotificationDropdown";
 
@@ -80,6 +80,13 @@ const Header = () => {
                 <span className="relative z-10">About</span>
                 <span className="absolute left-0 bottom-0 w-0 h-1 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 rounded-full group-hover:w-full transition-all duration-300"></span>
               </Link>
+              <Link
+                to="/stats"
+                className="px-4 py-2 rounded-full font-bold tracking-wide text-white bg-gradient-to-r from-green-500 to-emerald-600 shadow-md hover:scale-105 hover:shadow-green-500/40 transition-all duration-200 flex items-center gap-2"
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span>Stats</span>
+              </Link>
             </nav>
           </div>
 
@@ -136,6 +143,13 @@ const Header = () => {
               onClick={() => setMobileNavOpen(false)}
             >
               About
+            </Link>
+            <Link
+              to="/stats"
+              className="px-3 py-2 rounded-full font-bold tracking-wide text-white bg-gradient-to-r from-green-500 to-emerald-600 shadow-md flex items-center gap-2"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              <BarChart3 className="w-4 h-4" /> Stats
             </Link>
           </nav>
         )}

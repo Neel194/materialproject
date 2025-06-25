@@ -1,25 +1,14 @@
 "use client";
 import { Link, useLocation } from "react-router-dom";
-import {
-  BookOpen,
-  Upload,
-  Home,
-  Bell,
-  X,
-  Clock,
-  FileText,
-  CheckCircle,
-} from "lucide-react";
+import { BookOpen, Upload, Home, Bell, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import NotificationDropdown from "./NotificationDropdown";
-import RecentActivityDropdown from "./RecentActivityDropdown";
 
 const Header = () => {
   const location = useLocation();
   const isHome = location.pathname === "/";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [activityOpen, setActivityOpen] = useState(false);
   const [notifications, setNotifications] = useState([
     {
       id: 1,
@@ -29,42 +18,12 @@ const Header = () => {
     },
     { id: 2, message: "Processing complete", time: "1 hour ago", read: false },
   ]);
-  const [recentActivity, setRecentActivity] = useState([
-    {
-      id: 1,
-      type: "upload",
-      title: "Material Analysis Report",
-      status: "completed",
-      time: "2 minutes ago",
-      icon: <FileText className="w-5 h-5" />,
-    },
-    {
-      id: 2,
-      type: "process",
-      title: "Data Processing",
-      status: "completed",
-      time: "1 hour ago",
-      icon: <CheckCircle className="w-5 h-5" />,
-    },
-    {
-      id: 3,
-      type: "upload",
-      title: "Research Paper",
-      status: "processing",
-      time: "3 hours ago",
-      icon: <FileText className="w-5 h-5" />,
-    },
-  ]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        !event.target.closest(".notifications-container") &&
-        !event.target.closest(".activity-container")
-      ) {
+      if (!event.target.closest(".notifications-container")) {
         setNotificationsOpen(false);
-        setActivityOpen(false);
       }
     };
 
@@ -106,7 +65,6 @@ const Header = () => {
                   <span className="absolute left-0 bottom-0 w-0 h-1 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 rounded-full group-hover:w-full transition-all duration-300"></span>
                 </Link>
               )}
-              <RecentActivityDropdown />
               <NotificationDropdown />
               <Link
                 to="/upload"
@@ -128,7 +86,6 @@ const Header = () => {
           {/* Mobile Nav */}
           <div className="sm:hidden flex items-center gap-1">
             <div className="flex items-center gap-1">
-              <RecentActivityDropdown />
               <NotificationDropdown />
             </div>
             <button

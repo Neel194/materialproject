@@ -3,6 +3,17 @@ const path = require("path");
 const fs = require("fs").promises;
 
 class FileService {
+  static MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  static ALLOWED_TYPES = {
+    ".pdf": "application/pdf",
+    ".doc": "application/msword",
+    ".docx":
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".ppt": "application/vnd.ms-powerpoint",
+    ".pptx":
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  };
+
   static getStorage() {
     return multer.diskStorage({
       destination: (req, file, cb) => {
@@ -17,14 +28,17 @@ class FileService {
 
   static getFileFilter() {
     return (req, file, cb) => {
-      const allowedTypes = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
       const ext = path.extname(file.originalname).toLowerCase();
-      if (allowedTypes.includes(ext)) {
+      const mimetype = file.mimetype;
+
+      if (this.ALLOWED_TYPES[ext] && this.ALLOWED_TYPES[ext] === mimetype) {
         cb(null, true);
       } else {
         cb(
           new Error(
-            "Invalid file type. Only PDF, DOC, DOCX, PPT, and PPTX files are allowed."
+            `Invalid file type. Allowed types: ${Object.keys(
+              this.ALLOWED_TYPES
+            ).join(", ")}`
           ),
           false
         );
@@ -37,19 +51,40 @@ class FileService {
       storage: this.getStorage(),
       fileFilter: this.getFileFilter(),
       limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit
+        fileSize: this.MAX_FILE_SIZE,
       },
     });
   }
 
   static async deleteFile(filePath) {
     try {
+      if (!filePath) return false;
+
       const fullPath = path.join(process.cwd(), filePath);
+      await fs.access(fullPath); // Check if file exists
       await fs.unlink(fullPath);
       return true;
     } catch (error) {
       console.error("Error deleting file:", error);
       return false;
+    }
+  }
+
+  static async cleanupOrphanedFiles(materialFileUrls) {
+    try {
+      const uploadDir = path.join(process.cwd(), "uploads");
+      const files = await fs.readdir(uploadDir);
+
+      for (const file of files) {
+        const filePath = path.join(uploadDir, file);
+        const relativePath = path.join("uploads", file);
+
+        if (!materialFileUrls.includes(relativePath)) {
+          await this.deleteFile(relativePath);
+        }
+      }
+    } catch (error) {
+      console.error("Error cleaning up orphaned files:", error);
     }
   }
 

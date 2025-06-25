@@ -2,12 +2,15 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock } from "lucide-react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import config from "../config/config";
 
 const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,16 +18,29 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/admin/login",
-        {
-          password,
-        }
-      );
+      const response = await axios.post(`${config.api.baseURL}/admin/login`, {
+        password,
+      });
       setToken(response.data.token);
       localStorage.setItem("adminToken", response.data.token);
+
+      // Redirect to admin panel after successful login
+      setTimeout(() => {
+        navigate("/admin");
+      }, 1500);
     } catch (err) {
-      setError("Invalid password. Please try again.");
+      console.error("Login error:", err);
+      if (err.response?.status === 401) {
+        setError("Invalid password. Please try again.");
+      } else if (err.response?.status === 500) {
+        setError("Server error. Please check if backend is running.");
+      } else if (err.code === "ERR_NETWORK") {
+        setError(
+          "Cannot connect to server. Please check if backend is running on port 5000."
+        );
+      } else {
+        setError("Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -76,7 +92,7 @@ const AdminLogin = () => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-red-400 text-sm text-center"
+              className="text-red-400 text-sm text-center p-3 bg-red-900/20 rounded-lg"
             >
               {error}
             </motion.div>
@@ -89,14 +105,11 @@ const AdminLogin = () => {
               className="p-4 bg-green-900/30 rounded-md text-center"
             >
               <p className="text-sm text-green-300">
-                Login successful! Your admin token is:
+                Login successful! Redirecting to admin panel...
               </p>
-              <code className="block mt-2 p-2 bg-green-900/40 rounded text-green-100 break-all">
-                {token}
-              </code>
               <p className="mt-2 text-xs text-green-400">
-                This token has been saved to localStorage. You can now access
-                admin features.
+                Your admin token has been saved. You can now access admin
+                features.
               </p>
             </motion.div>
           )}

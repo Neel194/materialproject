@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Header from "../components/Header";
 import {
   Upload,
@@ -11,8 +11,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { materialData } from "../data/materialData";
-
-const BACKEND_URL = "http://localhost:5000"; // Change if backend runs elsewhere
+import config from "../config/config";
 
 const yearOptions = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 const branchOptions = ["CSE", "ECE", "ME", "CE", "EE", "Other"];
@@ -33,44 +32,84 @@ const ContentUpload = () => {
   const [pyqSession, setPyqSession] = useState(pyqSessionOptions[0]);
   const [pyqYear, setPyqYear] = useState("");
   const [otherSubject, setOtherSubject] = useState("");
+  const [uploadedBy, setUploadedBy] = useState("Anonymous");
 
-  // Dynamically get subject options based on year and branch
-  const getSubjectOptions = () => {
+  // Memoize subject options to prevent recalculation on every render
+  const subjectOptions = useMemo(() => {
     const key = `${year.split(" ")[0]}_${branch}`;
     const subjects = materialData[key] || [];
-    return subjects.map((s) => s.name);
-  };
-  const subjectOptions = [...getSubjectOptions(), "Other"];
+    return [...subjects.map((s) => s.name), "Other"];
+  }, [year, branch]);
 
-  // Reset subject if year/branch changes
-  const handleYearChange = (val) => {
-    setYear(val);
-    const newSubjects = materialData[`${val.split(" ")[0]}_${branch}`] || [];
-    setSubject(newSubjects[0]?.name || "");
-  };
-  const handleBranchChange = (val) => {
-    setBranch(val);
-    const newSubjects = materialData[`${year.split(" ")[0]}_${val}`] || [];
-    setSubject(newSubjects[0]?.name || "");
-  };
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleYearChange = useCallback(
+    (val) => {
+      setYear(val);
+      const newSubjects = materialData[`${val.split(" ")[0]}_${branch}`] || [];
+      setSubject(newSubjects[0]?.name || "");
+    },
+    [branch]
+  );
 
-  const handleDragOver = (e) => {
+  const handleBranchChange = useCallback(
+    (val) => {
+      setBranch(val);
+      const newSubjects = materialData[`${year.split(" ")[0]}_${val}`] || [];
+      setSubject(newSubjects[0]?.name || "");
+    },
+    [year]
+  );
+
+  const handleDragOver = useCallback((e) => {
     e.preventDefault();
     setIsDragging(true);
-  };
+  }, []);
 
-  const handleDragLeave = () => {
+  const handleDragLeave = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
 
-  const handleDrop = (e) => {
+  const handleDrop = useCallback((e) => {
     e.preventDefault();
     setIsDragging(false);
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile) {
-      setFile(droppedFile);
+      validateAndSetFile(droppedFile);
     }
-  };
+  }, []);
+
+  const validateAndSetFile = useCallback((file) => {
+    // Check file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      setStatus("File size must be less than 10MB");
+      return;
+    }
+
+    // Check file type
+    const allowedTypes = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
+    const fileExtension = "." + file.name.split(".").pop().toLowerCase();
+
+    if (!allowedTypes.includes(fileExtension)) {
+      setStatus(
+        `File type not supported. Allowed types: ${allowedTypes.join(", ")}`
+      );
+      return;
+    }
+
+    setFile(file);
+    setStatus(""); // Clear any previous error messages
+  }, []);
+
+  const handleFileChange = useCallback(
+    (e) => {
+      const selectedFile = e.target.files[0];
+      if (selectedFile) {
+        validateAndSetFile(selectedFile);
+      }
+    },
+    [validateAndSetFile]
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,19 +117,31 @@ const ContentUpload = () => {
     const formData = new FormData();
     formData.append("title", title);
     formData.append("description", description);
+    // Map contentType to backend 'type'
+    let backendType = "study_material";
+    if (contentType === "syllabus") backendType = "syllabus";
+    if (contentType === "pyq") backendType = "pyq";
+    formData.append("type", backendType);
+    // Convert year to number (1, 2, 3, 4)
+    const yearNumber = parseInt(year);
+    formData.append("year", yearNumber);
+    // Ensure branch is uppercase
+    formData.append("branch", branch.toUpperCase());
+    // Subject
     formData.append("subject", subject === "Other" ? otherSubject : subject);
-    formData.append("contentType", contentType);
-    formData.append("year", year);
-    formData.append("branch", branch);
+    // UploadedBy
+    formData.append("uploadedBy", uploadedBy);
+    // Material type (optional, only for study_material)
     if (contentType === "material")
       formData.append("materialType", materialType);
+    // PYQ fields
     if (contentType === "pyq") {
       formData.append("session", pyqSession);
       formData.append("pyqYear", pyqYear);
     }
     if (file) formData.append("file", file);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/materials`, {
+      const res = await fetch(`${config.api.baseURL}/materials`, {
         method: "POST",
         body: formData,
       });
@@ -102,10 +153,11 @@ const ContentUpload = () => {
         setFile(null);
         setContentType("material");
       } else {
-        setStatus("Upload failed.");
+        const errorData = await res.json();
+        setStatus(errorData.message || "Upload failed.");
       }
-    } catch {
-      setStatus("Upload failed.");
+    } catch (err) {
+      setStatus("Upload failed. Network or server error.");
     }
   };
 
@@ -325,6 +377,19 @@ const ContentUpload = () => {
                   className="w-full px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all text-sm"
                 />
               </div>
+
+              <div>
+                <label className="block text-white/80 mb-1 text-sm font-medium">
+                  Your Name (optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Anonymous"
+                  value={uploadedBy}
+                  onChange={(e) => setUploadedBy(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all text-sm"
+                />
+              </div>
             </div>
 
             {/* Right Column */}
@@ -366,7 +431,7 @@ const ContentUpload = () => {
                     </p>
                     <input
                       type="file"
-                      onChange={(e) => setFile(e.target.files[0])}
+                      onChange={handleFileChange}
                       required
                       className="hidden"
                       id="file-upload"

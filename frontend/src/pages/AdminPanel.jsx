@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle, FileText, Loader2 } from "lucide-react";
 import axios from "axios";
+import config from "../config/config";
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -36,15 +37,33 @@ const AdminPanel = () => {
     setError("");
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await axios.get(
-        "http://localhost:5000/api/admin/materials?status=pending",
+      if (!token) {
+        setError("No admin token found. Please login again.");
+        return;
+      }
+
+      const response = await axios.get(
+        `${config.api.baseURL}/materials/admin`,
         {
-          headers: { "x-admin-token": token },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
       );
-      setMaterials(res.data);
+      setMaterials(response.data.materials || response.data);
     } catch (err) {
-      setError("Failed to fetch materials. Check your admin token or server.");
+      console.error("Fetch materials error:", err);
+      if (err.response?.status === 401) {
+        setError("Authentication failed. Please login again.");
+        localStorage.removeItem("adminToken");
+      } else if (err.code === "ERR_NETWORK") {
+        setError(
+          "Cannot connect to server. Please check if backend is running."
+        );
+      } else {
+        setError("Failed to fetch materials. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -61,12 +80,32 @@ const AdminPanel = () => {
     setError("");
     try {
       const token = localStorage.getItem("adminToken");
-      const url = `http://localhost:5000/api/admin/materials/${id}/${action}`;
-      await axios.post(url, {}, { headers: { "x-admin-token": token } });
+      if (!token) {
+        setError("No admin token found. Please login again.");
+        return;
+      }
+
+      const response = await axios.post(
+        `${config.api.baseURL}/materials/admin/${id}/${action}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       setSuccess(`Material ${action}d successfully!`);
       setMaterials((prev) => prev.filter((m) => m._id !== id));
     } catch (err) {
-      setError(`Failed to ${action} material.`);
+      console.error(`${action} material error:`, err);
+      if (err.response?.status === 401) {
+        setError("Authentication failed. Please login again.");
+        localStorage.removeItem("adminToken");
+      } else {
+        setError(`Failed to ${action} material. Please try again.`);
+      }
     } finally {
       setActionLoading("");
     }
@@ -75,7 +114,7 @@ const AdminPanel = () => {
   const handleGenerateJSON = (mat) => {
     let json = {};
     let filename = "";
-    if (mat.contentType === "material") {
+    if (mat.type === "study_material") {
       json = {
         year: mat.year,
         branch: mat.branch,
@@ -83,12 +122,12 @@ const AdminPanel = () => {
         materialType: mat.materialType || "Notes",
         name: mat.title,
         description: mat.description,
-        author: mat.author || "Unknown",
+        author: mat.uploadedBy || "Unknown",
         previewLink: mat.fileUrl || "#",
         downloadLink: mat.fileUrl || "#",
       };
       filename = `newMaterial.json`;
-    } else if (mat.contentType === "syllabus") {
+    } else if (mat.type === "syllabus") {
       json = {
         year: mat.year,
         branch: mat.branch,
@@ -99,7 +138,7 @@ const AdminPanel = () => {
         downloadLink: mat.fileUrl || "#",
       };
       filename = `newSyllabus.json`;
-    } else if (mat.contentType === "pyq") {
+    } else if (mat.type === "pyq") {
       json = {
         year: mat.year,
         branch: mat.branch,
@@ -108,7 +147,7 @@ const AdminPanel = () => {
         pyqYear: mat.pyqYear || "",
         name: mat.title,
         description: mat.description,
-        author: mat.author || "Unknown",
+        author: mat.uploadedBy || "Unknown",
         previewLink: mat.fileUrl || "#",
         downloadLink: mat.fileUrl || "#",
       };
@@ -161,7 +200,7 @@ const AdminPanel = () => {
                   </span>
                 </div>
                 <div className="text-sm text-gray-300 mb-1">
-                  <span className="font-medium">Type:</span> {mat.contentType}
+                  <span className="font-medium">Type:</span> {mat.type}
                 </div>
                 <div className="text-sm text-gray-300 mb-1">
                   <span className="font-medium">Subject:</span> {mat.subject}
@@ -175,7 +214,9 @@ const AdminPanel = () => {
                   {new Date(mat.uploadedAt).toLocaleString()}
                 </div>
                 <a
-                  href={`http://localhost:5000${mat.fileUrl}`}
+                  href={`${config.api.baseURL.replace("/api", "")}${
+                    mat.fileUrl
+                  }`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block mt-2 text-indigo-600 hover:underline text-sm font-medium"

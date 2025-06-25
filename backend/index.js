@@ -1,4 +1,4 @@
-require("dotenv").config();
+const config = require("./config/config");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -7,146 +7,242 @@ const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 
+// Constants
+const PORT = config.server.port;
+const FRONTEND_URL = config.cors.origin;
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX = 100; // requests per window
+const UPLOAD_SIZE_LIMIT = "10mb";
+
+// Initialize Express app
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Environment Variables Check
+const checkEnvironmentVariables = () => {
+  const requiredVars = {
+    MONGODB_URI: process.env.MONGODB_URI,
+    JWT_SECRET: process.env.JWT_SECRET,
+    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
+  };
 
-// Security middleware
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "blob:"],
-        connectSrc: ["'self'"],
+  const missingVars = Object.entries(requiredVars)
+    .filter(([_, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingVars.length > 0) {
+    console.warn("Warning: Missing environment variables:", missingVars);
+  }
+};
+
+// Request logging middleware
+const requestLogger = (req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(
+      `${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms`
+    );
+  });
+  next();
+};
+
+// Security Configuration
+const configureSecurity = () => {
+  // Helmet security headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "blob:"],
+          connectSrc: ["'self'"],
+        },
       },
-    },
-  })
-);
+    })
+  );
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later",
-});
-
-// Apply rate limiting to all routes
-app.use(limiter);
-
-// CORS configuration
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
-// Compression middleware
-app.use(compression());
-
-// Body parser middleware with increased limits
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-// Static files with cache control
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "uploads"), {
-    maxAge: "1d",
-    etag: true,
-  })
-);
-
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-// API Routes
-app.use("/api/materials", require("./routes/materials"));
-app.use("/api/admin", require("./routes/admin"));
-
-// 404 handler
-app.use((req, res, next) => {
-  res.status(404).json({
-    message: "Route not found",
-    path: req.originalUrl,
+  // Rate limiting
+  const limiter = rateLimit({
+    windowMs: RATE_LIMIT_WINDOW,
+    max: RATE_LIMIT_MAX,
+    message: "Too many requests from this IP, please try again later",
+    standardHeaders: true,
+    legacyHeaders: false,
   });
-});
+  app.use(limiter);
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
+  // CORS configuration
+  app.use(
+    cors({
+      origin: FRONTEND_URL,
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
+  );
+};
 
-  // Handle multer errors
-  if (err.name === "MulterError") {
-    return res.status(400).json({
-      message:
-        err.message === "File too large"
-          ? "File size exceeds 10MB limit"
-          : "Error uploading file",
-    });
+// Middleware Configuration
+const configureMiddleware = () => {
+  // Request logging (only in development)
+  if (config.server.env === "development") {
+    app.use(requestLogger);
   }
 
-  // Handle mongoose validation errors
-  if (err.name === "ValidationError") {
-    return res.status(400).json({
-      message: Object.values(err.errors)
-        .map((val) => val.message)
-        .join(", "),
-    });
-  }
+  // Compression with better configuration
+  app.use(compression({
+    level: 6, // Compression level (0-9, higher = better compression but slower)
+    threshold: 1024, // Only compress responses larger than 1KB
+    filter: (req, res) => {
+      // Don't compress if client doesn't support it
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      // Use compression for all other requests
+      return compression.filter(req, res);
+    }
+  }));
 
-  // Handle mongoose cast errors (invalid ObjectId)
-  if (err.name === "CastError") {
-    return res.status(400).json({
-      message: "Invalid ID format",
-    });
-  }
+  // Body parsing
+  app.use(express.json({ limit: UPLOAD_SIZE_LIMIT }));
+  app.use(express.urlencoded({ extended: true, limit: UPLOAD_SIZE_LIMIT }));
 
-  // Handle JWT errors
-  if (err.name === "JsonWebTokenError") {
-    return res.status(401).json({
-      message: "Invalid token",
-    });
-  }
+  // Static files with better caching
+  app.use(
+    "/uploads",
+    express.static(path.join(__dirname, "uploads"), {
+      maxAge: "1d",
+      etag: true,
+      lastModified: true,
+      immutable: false,
+    })
+  );
+};
 
-  // Handle JWT expiration
-  if (err.name === "TokenExpiredError") {
-    return res.status(401).json({
-      message: "Token expired",
+// Route Configuration
+const configureRoutes = () => {
+  // Health check
+  app.get("/health", (req, res) => {
+    res.status(200).json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      environment: config.server.env,
     });
-  }
-
-  // Default error response
-  res.status(err.status || 500).json({
-    message: err.message || "Something went wrong!",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
-});
 
-// Start server
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+  // API routes
+  app.use("/api/materials", require("./routes/materials"));
+  app.use("/api/admin", require("./routes/admin"));
+};
 
-// Handle unhandled promise rejections
-process.on("unhandledRejection", (err) => {
-  console.error("Unhandled Promise Rejection:", err);
-  // Close server & exit process
-  server.close(() => process.exit(1));
-});
+// Error Handlers
+const configureErrorHandlers = () => {
+  // 404 handler
+  app.use((req, res) => {
+    res.status(404).json({
+      message: "Route not found",
+      path: req.originalUrl,
+    });
+  });
 
-// Handle uncaught exceptions
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught Exception:", err);
-  // Close server & exit process
-  server.close(() => process.exit(1));
-});
+  // Global error handler
+  app.use((err, req, res, next) => {
+    console.error("Error:", {
+      message: err.message,
+      stack: err.stack,
+      path: req.originalUrl,
+      method: req.method,
+    });
+
+    // Handle specific error types
+    const errorHandlers = {
+      MulterError: () => ({
+        status: 400,
+        message:
+          err.message === "File too large"
+            ? "File size exceeds 10MB limit"
+            : "Error uploading file",
+      }),
+      ValidationError: () => ({
+        status: 400,
+        message: Object.values(err.errors)
+          .map((val) => val.message)
+          .join(", "),
+      }),
+      CastError: () => ({
+        status: 400,
+        message: "Invalid ID format",
+      }),
+      JsonWebTokenError: () => ({
+        status: 401,
+        message: "Invalid token",
+      }),
+      TokenExpiredError: () => ({
+        status: 401,
+        message: "Token expired",
+      }),
+    };
+
+    const errorHandler =
+      errorHandlers[err.name] ||
+      (() => ({
+        status: err.status || 500,
+        message: err.message || "Something went wrong!",
+      }));
+
+    const { status, message } = errorHandler();
+
+    res.status(status).json({
+      message,
+      ...(config.server.env === "development" && { stack: err.stack }),
+    });
+  });
+};
+
+// Process Error Handlers
+const configureProcessHandlers = (server) => {
+  process.on("unhandledRejection", (err) => {
+    console.error("Unhandled Promise Rejection:", err);
+    server.close(() => process.exit(1));
+  });
+
+  process.on("uncaughtException", (err) => {
+    console.error("Uncaught Exception:", err);
+    server.close(() => process.exit(1));
+  });
+};
+
+// Initialize Application
+const initializeApp = async () => {
+  try {
+    // Check environment variables
+    checkEnvironmentVariables();
+
+    // Connect to database
+    await connectDB();
+
+    // Configure application
+    configureSecurity();
+    configureMiddleware();
+    configureRoutes();
+    configureErrorHandlers();
+
+    // Start server
+    const server = app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log(`Environment: ${config.server.env}`);
+      console.log(`Frontend URL: ${FRONTEND_URL}`);
+    });
+
+    // Configure process handlers
+    configureProcessHandlers(server);
+  } catch (error) {
+    console.error("Failed to initialize application:", error);
+    process.exit(1);
+  }
+};
+
+// Start the application
+initializeApp();

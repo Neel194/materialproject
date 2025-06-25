@@ -56,20 +56,26 @@ class MaterialService {
       filter.status = "approved";
     }
 
-    const searchQuery = {
-      ...filter,
-      $or: [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-      ],
-    };
+    // Build search query more efficiently
+    const searchQuery = { ...filter };
 
-    const total = await Material.countDocuments(searchQuery);
-    const materials = await Material.find(searchQuery)
-      .sort({ uploadedAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .select("-__v");
+    if (search.trim()) {
+      searchQuery.$or = [
+        { title: { $regex: search.trim(), $options: "i" } },
+        { description: { $regex: search.trim(), $options: "i" } },
+      ];
+    }
+
+    // Use Promise.all for concurrent queries
+    const [total, materials] = await Promise.all([
+      Material.countDocuments(searchQuery),
+      Material.find(searchQuery)
+        .sort({ uploadedAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select("-__v")
+        .lean(), // Use lean() for better performance when not modifying documents
+    ]);
 
     return {
       materials,
@@ -137,13 +143,19 @@ class MaterialService {
     }
 
     material.status = status;
-    const updatedMaterial = await material.save();
 
-    // Clear relevant caches
-    CacheService.delete(CacheService.generateKey("materials", {}));
-    CacheService.delete(CacheService.generateKey("stats", {}));
+    try {
+      const updatedMaterial = await material.save();
 
-    return updatedMaterial;
+      // Clear relevant caches
+      CacheService.delete(CacheService.generateKey("materials", {}));
+      CacheService.delete(CacheService.generateKey("stats", {}));
+
+      return updatedMaterial;
+    } catch (saveError) {
+      console.error("Error saving material:", saveError);
+      throw saveError;
+    }
   }
 
   // Get material by ID
